@@ -32,6 +32,8 @@ export default function Home() {
   const [error, setError] = useState("");
   const [analysis, setAnalysis] = useState<any>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
+  const [tailoredResume, setTailoredResume] = useState<any>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   return (
     <main className="min-h-screen bg-[#fafaff] text-slate-900">
@@ -357,6 +359,222 @@ export default function Home() {
                   )}
                 </ul>
               </div>
+
+              {/* Generate Tailored Resume */}
+              <div className="mt-8 rounded-xl border border-violet-200 bg-violet-50 p-6">
+                <h3 className="text-lg font-bold text-slate-900">
+                  Ready to improve your resume?
+                </h3>
+
+                <p className="mt-2 text-sm text-slate-600">
+                  Generate a job-specific resume using your existing
+                  qualifications and experience.
+                </p>
+
+                <button
+                  type="button"
+                  disabled={isGenerating}
+                  onClick={async () => {
+                    setIsGenerating(true);
+                    setTailoredResume(null);
+                    setError("");
+
+                    const formData = new FormData();
+                    formData.append("resume", resumeFile!);
+                    formData.append("jobDescription", jobDescription);
+
+                    try {
+                      const response = await fetch("/api/tailor-resume", {
+                        method: "POST",
+                        body: formData,
+                      });
+
+                      const result = await response.json();
+
+                      if (!response.ok) {
+                        throw new Error(
+                          result.error || "Resume generation failed.",
+                        );
+                      }
+
+                      setTailoredResume(result.tailoredResume);
+                    } catch (error) {
+                      setError(
+                        error instanceof Error
+                          ? error.message
+                          : "Unable to generate tailored resume.",
+                      );
+                    } finally {
+                      setIsGenerating(false);
+                    }
+                  }}
+                  className="mt-5 w-full rounded-xl bg-violet-600 px-6 py-3 font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {isGenerating
+                    ? "Generating Resume..."
+                    : "✨ Generate Tailored Resume"}
+                </button>
+              </div>
+
+              {/* Tailored Resume Preview */}
+              {tailoredResume && (
+                <div className="mt-8 rounded-2xl border border-violet-200 bg-white p-6 shadow-sm">
+                  <div className="border-b border-slate-200 pb-5">
+                    <h2 className="text-2xl font-bold text-slate-900">
+                      {tailoredResume.fullName}
+                    </h2>
+
+                    <p className="mt-2 text-lg font-semibold text-violet-700">
+                      {tailoredResume.professionalTitle}
+                    </p>
+
+                    <p className="mt-2 text-sm text-slate-600">
+                      {[
+                        tailoredResume.contact?.email,
+                        tailoredResume.contact?.phone,
+                        tailoredResume.contact?.location,
+                        tailoredResume.contact?.linkedin,
+                      ]
+                        .filter(Boolean)
+                        .join(" | ")}
+                    </p>
+                  </div>
+
+                  {/* Professional Summary */}
+                  {tailoredResume.professionalSummary && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">
+                        Professional Summary
+                      </h3>
+                      <p className="mt-2 text-sm leading-7 text-slate-600">
+                        {tailoredResume.professionalSummary}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {tailoredResume.skills?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">Skills</h3>
+
+                      {tailoredResume.skills.map(
+                        (group: any, index: number) => (
+                          <div key={index} className="mt-3">
+                            <p className="text-sm font-semibold text-slate-700">
+                              {group.category}
+                            </p>
+                            <p className="mt-1 text-sm text-slate-600">
+                              {group.items.join(" • ")}
+                            </p>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {tailoredResume.experience?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">
+                        Professional Experience
+                      </h3>
+
+                      {tailoredResume.experience.map(
+                        (job: any, index: number) => (
+                          <div key={index} className="mt-4">
+                            <p className="font-semibold text-slate-800">
+                              {job.jobTitle} – {job.company}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {job.location} {job.dates}
+                            </p>
+
+                            <ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-600">
+                              {job.highlights.map((item: string, i: number) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                  {/* Projects */}
+                  {tailoredResume.projects?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">Projects</h3>
+
+                      {tailoredResume.projects.map(
+                        (project: any, index: number) => (
+                          <div key={index} className="mt-3">
+                            <p className="font-semibold text-slate-800">
+                              {project.name}
+                            </p>
+                            <p className="text-xs text-slate-500">
+                              {project.technologies.join(" • ")}
+                            </p>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                              {project.highlights.map(
+                                (item: string, i: number) => (
+                                  <li key={i}>{item}</li>
+                                ),
+                              )}
+                            </ul>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {tailoredResume.education?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">Education</h3>
+
+                      {tailoredResume.education.map(
+                        (edu: any, index: number) => (
+                          <div key={index} className="mt-3">
+                            <p className="font-semibold text-slate-800">
+                              {edu.degree}
+                            </p>
+                            <p className="text-sm text-slate-600">
+                              {edu.institution} {edu.dates}
+                            </p>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  )}
+
+                  {/* Certifications */}
+                  {tailoredResume.certifications?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">
+                        Certifications
+                      </h3>
+                      <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-600">
+                        {tailoredResume.certifications.map(
+                          (item: string, index: number) => (
+                            <li key={index}>{item}</li>
+                          ),
+                        )}
+                      </ul>
+                    </div>
+                  )}
+
+                  {/* Languages */}
+                  {tailoredResume.languages?.length > 0 && (
+                    <div className="mt-6">
+                      <h3 className="font-bold text-slate-900">Languages</h3>
+                      <p className="mt-2 text-sm text-slate-600">
+                        {tailoredResume.languages.join(" • ")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="mt-8 border-t border-slate-100 pt-6">
                 <button
                   type="button"
